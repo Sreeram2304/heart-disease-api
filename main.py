@@ -4,32 +4,32 @@ Endpoints: auth, predict, history, stats
 Run: uvicorn main:app --reload
 UI:  http://localhost:8000
 """
-
+ 
 import json
 import time
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-
+ 
 import joblib
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
+ 
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
-
+ 
 from database.db import init_db, get_db
 from database.models import User, Prediction
 from auth import hash_password, verify_password, create_access_token, decode_token
-
+ 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
-
+ 
 MODEL = {}
-
+ 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
@@ -44,12 +44,12 @@ async def lifespan(app: FastAPI):
     logger.info("Model loaded | DB initialised")
     yield
     MODEL.clear()
-
+ 
 app = FastAPI(title="Heart Disease API", version="2.0.0", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+ 
 templates = Jinja2Templates(directory="templates")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
-
+ 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     t0 = time.perf_counter()
@@ -58,7 +58,7 @@ async def log_requests(request: Request, call_next):
     logger.info("%s %s → %d | %.1f ms", request.method, request.url.path, response.status_code, ms)
     response.headers["X-Latency-Ms"] = f"{ms:.1f}"
     return response
-
+ 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = decode_token(token) if token else None
     if not payload:
@@ -67,17 +67,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
-
+ 
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email:    EmailStr
     password: str = Field(..., min_length=6)
-
+ 
 class TokenResponse(BaseModel):
     access_token: str
     token_type:   str = "bearer"
     username:     str
-
+ 
 class PatientFeatures(BaseModel):
     age:      float = Field(..., ge=1,   le=120, example=54)
     sex:      float = Field(..., ge=0,   le=1,   example=1)
@@ -92,21 +92,21 @@ class PatientFeatures(BaseModel):
     slope:    float = Field(..., ge=0,   le=2,   example=1)
     ca:       float = Field(..., ge=0,   le=4,   example=2)
     thal:     float = Field(..., ge=0,   le=3,   example=2)
-
+ 
 class PredictionResponse(BaseModel):
     prediction:          int
     label:               str
     probability_disease: float
     confidence:          str
-
+ 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
+ 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
-
+ 
 @app.post("/api/auth/register", response_model=TokenResponse, tags=["Auth"])
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == body.username).first():
@@ -117,7 +117,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user); db.commit(); db.refresh(user)
     token = create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer", "username": user.username}
-
+ 
 @app.post("/api/auth/login", response_model=TokenResponse, tags=["Auth"])
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form.username).first()
@@ -125,11 +125,11 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         raise HTTPException(status_code=401, detail="Invalid credentials.")
     token = create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer", "username": user.username}
-
+ 
 @app.get("/api/auth/me", tags=["Auth"])
 def me(current_user: User = Depends(get_current_user)):
     return {"username": current_user.username, "email": current_user.email, "created_at": current_user.created_at}
-
+ 
 @app.post("/api/predict", response_model=PredictionResponse, tags=["Inference"])
 def predict(patient: PatientFeatures, db: Session = Depends(get_db),
             current_user: User = Depends(get_current_user)):
@@ -152,7 +152,7 @@ def predict(patient: PatientFeatures, db: Session = Depends(get_db),
     db.add(record); db.commit()
     logger.info("user=%s pred=%d P=%.3f", current_user.username, pred, proba)
     return {"prediction": pred, "label": label, "probability_disease": round(proba, 4), "confidence": confidence}
-
+ 
 @app.get("/api/history", tags=["Data"])
 def history(limit: int = 20, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     rows = (db.query(Prediction).filter(Prediction.user_id == current_user.id)
@@ -160,7 +160,7 @@ def history(limit: int = 20, current_user: User = Depends(get_current_user), db:
     return [{"id": r.id, "prediction": r.prediction, "label": r.label,
              "probability_disease": r.probability_disease, "confidence": r.confidence,
              "age": r.age, "created_at": r.created_at.isoformat()} for r in rows]
-
+ 
 @app.get("/api/stats", tags=["Data"])
 def stats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     rows = db.query(Prediction).filter(Prediction.user_id == current_user.id).all()
@@ -171,7 +171,7 @@ def stats(current_user: User = Depends(get_current_user), db: Session = Depends(
     return {"total": total, "disease": disease, "no_disease": total - disease,
             "avg_probability": round(sum(r.probability_disease for r in rows) / total, 4),
             "model_metrics": MODEL.get("metrics", {})}
-
+ 
 @app.get("/health", tags=["Monitoring"])
 def health():
     return {"status": "ok", "model": "RandomForestClassifier", "features": len(MODEL.get("features", []))}
