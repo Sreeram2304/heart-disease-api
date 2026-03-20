@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY model.pkl features.json main.py auth.py ./
 COPY database/ ./database/
 COPY templates/ ./templates/
-COPY static/ ./static/
 
 EXPOSE 8000
 
