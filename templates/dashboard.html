@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CardioScan — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0f14; --surface: #111820; --border: #1e2a38;
+    --accent: #00e5a0; --danger: #ff4d6d; --warn: #f5a623;
+    --text: #e2eaf4; --muted: #6b7e96; --card: #141d28;
+    --mono: 'DM Mono', monospace; --display: 'Syne', sans-serif; --body: 'DM Sans', sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M0 30h60M30 0v60' stroke='%231e2a38' stroke-width='0.4' opacity='0.5'/%3E%3C/svg%3E");
+  }
+  header {
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid var(--border); padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between; height: 60px;
+    background: rgba(11,15,20,0.92); backdrop-filter: blur(12px);
+  }
+  .logo { font-family: var(--display); font-size: 1.2rem; font-weight: 800; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 1rem; align-items: center; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  #un { color: var(--accent); font-family: var(--mono); font-size: 0.8rem; }
+  .btn-sm {
+    padding: 0.35rem 0.9rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text); font-family: var(--body); transition: all 0.2s;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+  .page-title { font-family: var(--display); font-size: 1.8rem; font-weight: 800; margin-bottom: 0.25rem; }
+  .page-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; font-family: var(--mono); }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+  .stat-label { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .stat-value { font-family: var(--display); font-size: 2rem; font-weight: 800; line-height: 1; }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.warn   { color: var(--warn); }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+  /* Charts row */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;
+  }
+  .chart-title { font-family: var(--display); font-size: 0.9rem; font-weight: 700; margin-bottom: 1rem; color: var(--muted); }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* Model metrics */
+  .metrics-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.5rem; margin-bottom: 2rem;
+  }
+  .metrics-card h3 { font-family: var(--display); font-size: 0.9rem; font-weight: 700; color: var(--muted); margin-bottom: 1.25rem; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+  .metric-item { text-align: center; }
+  .metric-name { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+  .metric-val { font-family: var(--display); font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+  .metric-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 0.4rem; overflow: hidden; }
+  .metric-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* History table */
+  .history-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .history-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .history-header h3 { font-family: var(--display); font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 0.85rem 1.5rem; font-size: 0.85rem; border-bottom: 1px solid rgba(30,42,56,0.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge {
+    display: inline-block; padding: 0.2rem 0.7rem; border-radius: 100px; font-size: 0.72rem; font-family: var(--mono);
+  }
+  .badge.disease { background: rgba(255,77,109,0.15); color: var(--danger); }
+  .badge.healthy { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .badge.high   { background: rgba(245,166,35,0.15); color: var(--warn); }
+  .badge.medium { background: rgba(255,255,255,0.08); color: var(--muted); }
+  .badge.low    { background: rgba(255,255,255,0.05); color: var(--muted); }
+  .empty-state { text-align: center; padding: 3rem; color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+  .redirect-msg { text-align: center; padding: 5rem 2rem; color: var(--muted); font-family: var(--mono); }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .charts-row { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Cardio<span>Scan</span></div>
+  <div class="nav-links">
+    <span id="un"></span>
+    <a href="/">Predict</a>
+    <button class="btn-sm" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<main>
+  <div id="redirect-msg" class="redirect-msg" style="display:none">
+    Not logged in. <a href="/" style="color:var(--accent)">Go to login →</a>
+  </div>
+
+  <div id="dash-content" style="display:none">
+    <div class="page-title">Your Dashboard</div>
+    <div class="page-sub" id="page-sub">Loading...</div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total assessments</div>
+        <div class="stat-value accent" id="s-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Disease detected</div>
+        <div class="stat-value danger" id="s-disease">—</div>
+        <div class="stat-sub" id="s-disease-pct"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">No disease</div>
+        <div class="stat-value accent" id="s-healthy">—</div>
+        <div class="stat-sub" id="s-healthy-pct"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg risk score</div>
+        <div class="stat-value warn" id="s-avg">—</div>
+        <div class="stat-sub">disease probability</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Outcome distribution</div>
+        <div class="chart-wrap"><canvas id="donut-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Probability trend (last 20)</div>
+        <div class="chart-wrap"><canvas id="line-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Model metrics -->
+    <div class="metrics-card">
+      <h3>Model performance — test set</h3>
+      <div class="metrics-grid" id="metrics-grid"></div>
+    </div>
+
+    <!-- History -->
+    <div class="history-card">
+      <div class="history-header">
+        <h3>Prediction history</h3>
+        <span style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)" id="history-count"></span>
+      </div>
+      <div id="history-body"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const token = localStorage.getItem('token');
+  const username = localStorage.getItem('username');
+
+  if (!token) {
+    document.getElementById('redirect-msg').style.display = '';
+  } else {
+    document.getElementById('dash-content').style.display = '';
+    document.getElementById('un').textContent = username ? `@${username}` : '';
+    loadDashboard();
+  }
+
+  function logout() {
+    localStorage.removeItem('token'); localStorage.removeItem('username');
+    location.href = '/';
+  }
+
+  async function apiFetch(path) {
+    const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  async function loadDashboard() {
+    try {
+      const [stats, history] = await Promise.all([apiFetch('/api/stats'), apiFetch('/api/history?limit=20')]);
+      renderStats(stats);
+      renderMetrics(stats.model_metrics);
+      renderCharts(stats, history);
+      renderHistory(history);
+      document.getElementById('page-sub').textContent = `Welcome back, ${username} — here's your prediction overview`;
+    } catch(e) {
+      document.getElementById('page-sub').textContent = 'Failed to load data. Try logging in again.';
+    }
+  }
+
+  function renderStats(s) {
+    document.getElementById('s-total').textContent   = s.total;
+    document.getElementById('s-disease').textContent = s.disease;
+    document.getElementById('s-healthy').textContent = s.no_disease;
+    document.getElementById('s-avg').textContent     = s.total ? `${Math.round(s.avg_probability * 100)}%` : '—';
+    if (s.total) {
+      document.getElementById('s-disease-pct').textContent = `${Math.round(s.disease/s.total*100)}% of total`;
+      document.getElementById('s-healthy-pct').textContent = `${Math.round(s.no_disease/s.total*100)}% of total`;
+    }
+  }
+
+  function renderMetrics(m) {
+    const keys = ['accuracy','precision','recall','f1','roc_auc'];
+    const labels = ['Accuracy','Precision','Recall','F1','ROC-AUC'];
+    const grid = document.getElementById('metrics-grid');
+    grid.innerHTML = keys.map((k,i) => {
+      const v = m[k] ?? 0;
+      return `<div class="metric-item">
+        <div class="metric-name">${labels[i]}</div>
+        <div class="metric-val">${(v*100).toFixed(1)}%</div>
+        <div class="metric-bar"><div class="metric-fill" style="width:${v*100}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderCharts(stats, history) {
+    Chart.defaults.color = '#6b7e96';
+    Chart.defaults.borderColor = '#1e2a38';
+    Chart.defaults.font.family = "'DM Mono', monospace";
+
+    // Donut
+    if (stats.total > 0) {
+      new Chart(document.getElementById('donut-chart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Disease', 'No Disease'],
+          datasets: [{ data: [stats.disease, stats.no_disease],
+            backgroundColor: ['#ff4d6d', '#00e5a0'],
+            borderColor: '#141d28', borderWidth: 3, hoverOffset: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '72%',
+          plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } } } }
+      });
+    }
+
+    // Line chart — probability over time
+    const reversed = [...history].reverse();
+    new Chart(document.getElementById('line-chart'), {
+      type: 'line',
+      data: {
+        labels: reversed.map((_, i) => `#${i+1}`),
+        datasets: [{
+          label: 'P(disease)',
+          data: reversed.map(r => +(r.probability_disease * 100).toFixed(1)),
+          borderColor: '#00e5a0', backgroundColor: 'rgba(0,229,160,0.08)',
+          pointBackgroundColor: reversed.map(r => r.prediction===1 ? '#ff4d6d' : '#00e5a0'),
+          pointRadius: 5, tension: 0.35, fill: true, borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#1e2a38' } },
+          x: { grid: { color: '#1e2a38' } }
+        },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% risk` } } }
+      }
+    });
+  }
+
+  function renderHistory(rows) {
+    const body = document.getElementById('history-body');
+    document.getElementById('history-count').textContent = `${rows.length} records`;
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty-state">No predictions yet — run your first assessment on the home page.</div>';
+      return;
+    }
+    body.innerHTML = `<table>
+      <thead><tr>
+        <th>#</th><th>Result</th><th>Risk score</th><th>Confidence</th><th>Age</th><th>Date</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td style="font-family:var(--mono);color:var(--muted)">${r.id}</td>
+          <td><span class="badge ${r.prediction===1?'disease':'healthy'}">${r.prediction===1?'Disease':'Healthy'}</span></td>
+          <td style="font-family:var(--mono)">${Math.round(r.probability_disease*100)}%</td>
+          <td><span class="badge ${r.confidence.toLowerCase()}">${r.confidence}</span></td>
+          <td>${r.age}</td>
+          <td style="color:var(--muted);font-family:var(--mono);font-size:0.78rem">${new Date(r.created_at).toLocaleString()}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+</script>
+</body>
+</html>

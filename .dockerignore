@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+tests/
+train.py
+heart_disease.csv
+evaluation_plots.png
+.github/
+*.md
+.env

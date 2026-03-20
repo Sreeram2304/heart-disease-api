@@ -1,0 +1,26 @@
+{
+  "features": [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+  ],
+  "metrics": {
+    "accuracy": 0.9788,
+    "precision": 0.97,
+    "recall": 0.9898,
+    "f1": 0.9798,
+    "roc_auc": 0.9976,
+    "cv_f1_mean": 0.9521,
+    "cv_f1_std": 0.017
+  }
+}
