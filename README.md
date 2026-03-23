@@ -4,8 +4,7 @@ A full-stack ML web application that predicts heart disease risk from patient vi
 
 **Stack**: FastAPI · scikit-learn · SQLite/PostgreSQL · JWT Auth · Jinja2 · Chart.js · Docker
 
-[![CI](https://github.com/YOUR_USERNAME/heart-disease-api/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/heart-disease-api/actions)
-
+It was live now https://heart-disease-api-jm9j.onrender.com 
 ---
 
 ## Features
@@ -94,5 +93,5 @@ open http://localhost:8000
 | Variable | Default | Description |
 |---|---|---|
 | `SECRET_KEY` | `change-me-in-production` | JWT signing key |
-| `DATABASE_URL` | `sqlite:///./heart_disease_app.db` | DB connection string |
+| `DATABASE_URL` | `postgresql:///./heart_disease_app.db` | DB connection string |
 "# heart-disease-predictor" 
