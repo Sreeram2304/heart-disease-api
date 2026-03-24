@@ -11,7 +11,7 @@ It was live now https://heart-disease-api-jm9j.onrender.com
 
 | Feature | Details |
 |---|---|
-| ML inference | Random Forest, 13 features, ~84% accuracy |
+| ML inference | Random Forest, 13 features, ~97% accuracy |
 | Auth | JWT register/login, bcrypt passwords |
 | Database | SQLite (dev) / PostgreSQL (prod) via SQLAlchemy |
 | Frontend | Prediction form + analytics dashboard |
