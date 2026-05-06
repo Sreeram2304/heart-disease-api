@@ -4,7 +4,7 @@ A full-stack ML web application that predicts heart disease risk from patient vi
 
 **Stack**: FastAPI · scikit-learn · SQLite/PostgreSQL · JWT Auth · Jinja2 · Chart.js · Docker
 
-It was live now https://heart-disease-api-jm9j.onrender.com 
+
 ---
 
 ## Features
